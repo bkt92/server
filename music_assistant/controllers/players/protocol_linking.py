@@ -1292,6 +1292,24 @@ class ProtocolLinkingMixin:
         if ip_a and ip_b and ip_a == ip_b:
             mac_a = identifiers_a.get(IdentifierType.MAC_ADDRESS)
             mac_b = identifiers_b.get(IdentifierType.MAC_ADDRESS)
+
+            # Check if both players have valid MAC addresses that are different.
+            # Different MACs indicate different physical devices, even if they share
+            # an IP address (which can happen with NAT, VPN, or other network configurations).
+            # This prevents false positives where multiple devices on different networks
+            # appear with the same client IP to Music Assistant.
+            if (mac_a and mac_b and
+                is_valid_mac_address(mac_a) and is_valid_mac_address(mac_b)):
+                if normalize_mac_for_matching(mac_a) != normalize_mac_for_matching(mac_b):
+                    self.logger.debug(
+                        "Skipping IP match for %s and %s: different MACs %s vs %s",
+                        player_a.display_name,
+                        player_b.display_name,
+                        mac_a,
+                        mac_b,
+                    )
+                    return False
+
             a_is_real = (
                 mac_a is not None
                 and is_valid_mac_address(mac_a)
